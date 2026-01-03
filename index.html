@@ -54,64 +54,54 @@
     </div>
 
     <script>
-        async function suggest(type) {
-            const query = document.getElementById(type).value;
-            const box = document.getElementById(`${type}-suggestions`);
-            if (query.length < 3) { box.innerHTML = ""; box.classList.add('hidden'); return; }
-
-            try {
-                const res = await fetch(`https://v6.vbb.transport.rest/locations?query=${encodeURIComponent(query)}&results=5`);
-                const locations = await res.json();
-                
-                box.innerHTML = locations.map(loc => `
-                    <div onclick="select('${type}', '${loc.name}')" class="p-4 border-b last:border-0 hover:bg-blue-50 font-medium cursor-pointer">
-                        ${loc.name}
-                    </div>
-                `).join('');
-                box.classList.remove('hidden');
-            } catch (e) { console.log(e); }
-        }
-
-        function select(type, name) {
-            document.getElementById(type).value = name;
-            document.getElementById(`${type}-suggestions`).classList.add('hidden');
-        }
-
         async function getJourney() {
-            const from = document.getElementById('from').value;
-            const to = document.getElementById('to').value;
-            const stepContainer = document.getElementById('journey-steps');
-            const resultDiv = document.getElementById('result');
+    const from = document.getElementById('from').value;
+    const to = document.getElementById('to').value;
+    const stepContainer = document.getElementById('journey-steps');
+    const resultDiv = document.getElementById('result');
 
-            if (!from || !to) return;
-            resultDiv.classList.remove('hidden');
-            stepContainer.innerHTML = "<p class='text-center py-10 font-bold'>Suche Verbindung... 🍦</p>";
+    if (!from || !to) return;
+    resultDiv.classList.remove('hidden');
+    stepContainer.innerHTML = "<p class='text-center py-10 font-bold'>Suche Verbindung... 🍦</p>";
 
-            try {
-                const res = await fetch(`https://v6.vbb.transport.rest/journeys?from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}&results=1`);
-                const data = await res.json();
-                const journey = data.journeys[0];
+    try {
+        // Sử dụng một proxy để tránh lỗi chặn truy cập (CORS)
+        const proxyUrl = "https://corsproxy.io/?";
+        const apiUrl = `https://v6.vbb.transport.rest/journeys?from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}&results=1`;
+        
+        const res = await fetch(proxyUrl + encodeURIComponent(apiUrl));
+        const data = await res.json();
 
-                stepContainer.innerHTML = "";
-                journey.legs.forEach(leg => {
-                    const isWalk = leg.mode === 'walking';
-                    const lineName = leg.line?.name || '';
-                    
-                    stepContainer.innerHTML += `
-                        <div class="bg-white p-5 rounded-[2rem] shadow-md flex items-center gap-4 border-l-8 ${isWalk ? 'border-orange-400' : 'border-blue-600'}">
-                            <div class="text-4xl ${isWalk ? 'walking-anim' : ''}">${isWalk ? '👟' : '🚇'}</div>
-                            <div class="flex-1">
-                                <p class="text-xs font-bold text-gray-400 uppercase">${isWalk ? 'Laufen' : 'Einsteigen: ' + lineName}</p>
-                                <p class="text-lg font-black leading-tight text-blue-900">${leg.destination.name}</p>
-                                <p class="text-sm font-bold text-gray-500 italic">
-                                    ${isWalk ? 'ca. ' + Math.round(leg.distance/80) + ' Min.' : (leg.stopovers?.length || 1) + ' Stationen'}
-                                </p>
-                            </div>
-                        </div>
-                    `;
-                });
-            } catch (e) { stepContainer.innerHTML = "Ups! Etwas ging schief. Probier's nochmal!"; }
+        if (!data.journeys || data.journeys.length === 0) {
+            stepContainer.innerHTML = "<p class='text-center text-red-500'>Keine Reise gefunden. 😢<br>Versuch's với tên trạm cụ thể hơn!</p>";
+            return;
         }
+
+        const journey = data.journeys[0];
+        stepContainer.innerHTML = "";
+        
+        journey.legs.forEach(leg => {
+            const isWalk = leg.mode === 'walking';
+            const lineName = leg.line?.name || '';
+            
+            stepContainer.innerHTML += `
+                <div class="bg-white p-5 rounded-[2rem] shadow-md flex items-center gap-4 border-l-8 ${isWalk ? 'border-orange-400' : 'border-blue-600'}">
+                    <div class="text-4xl ${isWalk ? 'walking-anim' : ''}">${isWalk ? '👟' : '🚇'}</div>
+                    <div class="flex-1">
+                        <p class="text-xs font-bold text-gray-400 uppercase">${isWalk ? 'Laufen' : 'Einsteigen: ' + lineName}</p>
+                        <p class="text-lg font-black leading-tight text-blue-900">${leg.destination.name}</p>
+                        <p class="text-sm font-bold text-gray-500 italic">
+                            ${isWalk ? 'ca. ' + Math.round(leg.distance/80) + ' Min.' : (leg.stopovers?.length || 1) + ' Stationen'}
+                        </p>
+                    </div>
+                </div>
+            `;
+        });
+    } catch (e) { 
+        console.error(e);
+        stepContainer.innerHTML = "<p class='text-center'>Ups! Verbindung abgebrochen. 🚧<br>Bitte Internet prüfen!</p>"; 
+    }
+}
     </script>
 </body>
 </html>
