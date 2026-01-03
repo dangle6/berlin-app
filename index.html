@@ -1,107 +1,102 @@
 <!DOCTYPE html>
+
+<!DOCTYPE html>
 <html lang="de">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Meine Reise - Berlin</title>
+    <title>Meine Reise Berlin</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Fredoka:wght@400;700&display=swap');
         body { font-family: 'Fredoka', sans-serif; }
         .walking-anim { animation: bounce 1s infinite; }
         @keyframes bounce { from { transform: translateY(0); } to { transform: translateY(-5px); } }
-        .suggestion-box { max-height: 200px; overflow-y: auto; z-index: 50; }
-        /* Màu đặc trưng cho tàu Berlin */
-        .line-badge { padding: 2px 8px; border-radius: 4px; color: white; font-weight: bold; font-size: 0.8rem; }
     </style>
- 		<link rel="manifest" href="manifest.json">
+	<link rel="manifest" href="manifest.json">
 		<meta name="apple-mobile-web-app-capable" content="yes">
 		<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 		<link rel="apple-touch-icon" href="https://cdn-icons-png.flaticon.com/512/821/821355.png">
+<html lang="de">
 </head>
-<body class="bg-yellow-50 pb-10">
+<body class="bg-blue-50 pb-10">
     <div class="max-w-md mx-auto p-5">
-        <h1 class="text-3xl font-black text-blue-900 text-center mb-6 underline decoration-yellow-400">MEINE REISE 🚇</h1>
+        <h1 class="text-3xl font-black text-blue-900 text-center mb-6 underline decoration-yellow-400 uppercase">Berlin Tour 🚇</h1>
 
-        <div class="bg-white p-6 rounded-[2.5rem] shadow-xl mb-6 space-y-4 border-4 border-blue-200">
-            <div class="relative">
-                <p class="text-xs font-bold text-blue-400 ml-4 mb-1 uppercase">📍 Start (Von)</p>
-                <input id="from" oninput="suggest('from')" type="text" placeholder="Wo bist du?" 
-                    class="w-full p-4 bg-gray-50 rounded-2xl border-2 border-transparent focus:border-blue-400 outline-none font-bold">
-                <div id="from-suggestions" class="suggestion-box absolute w-full bg-white shadow-lg rounded-xl mt-1 hidden border border-gray-100"></div>
+        <div class="bg-white p-6 rounded-[2.5rem] shadow-xl mb-6 border-4 border-blue-200">
+            <div class="space-y-4">
+                <div>
+                    <p class="text-xs font-bold text-blue-400 ml-4 mb-1">📍 START</p>
+                    <input id="from" type="text" placeholder="Wo bist du?" class="w-full p-4 bg-gray-50 rounded-2xl border-none font-bold outline-none focus:ring-2 focus:ring-blue-400">
+                </div>
+                <div class="text-center text-blue-200">⬇️</div>
+                <div>
+                    <p class="text-xs font-bold text-red-400 ml-4 mb-1">🏁 ZIEL</p>
+                    <input id="to" type="text" placeholder="Wo willst du hin?" class="w-full p-4 bg-gray-50 rounded-2xl border-none font-bold outline-none focus:ring-2 focus:ring-red-400">
+                </div>
+                <button onclick="getAlternativeJourney()" class="w-full bg-blue-600 text-white font-black py-5 rounded-3xl shadow-lg active:scale-95 transition-all text-xl mt-4">
+                    PLANEN! 🚀
+                </button>
             </div>
-
-            <div class="relative text-center text-blue-300">
-                <span class="text-2xl">⬇️</span>
-            </div>
-
-            <div class="relative">
-                <p class="text-xs font-bold text-red-400 ml-4 mb-1 uppercase">🏁 Ziel (Nach)</p>
-                <input id="to" oninput="suggest('to')" type="text" placeholder="Wo willst du hin?" 
-                    class="w-full p-4 bg-gray-50 rounded-2xl border-2 border-transparent focus:border-red-400 outline-none font-bold">
-                <div id="to-suggestions" class="suggestion-box absolute w-full bg-white shadow-lg rounded-xl mt-1 hidden border border-gray-100"></div>
-            </div>
-
-            <button onclick="getJourney()" class="w-full bg-blue-600 text-white font-black py-5 rounded-3xl shadow-lg active:scale-95 transition-all text-xl mt-4">
-                LOS GEHT'S! 🚀
-            </button>
         </div>
 
-        <div id="result" class="space-y-6 hidden">
+        <div id="result" class="space-y-4 hidden">
             <h2 class="text-xl font-bold text-gray-700 ml-2">Dein Weg:</h2>
             <div id="journey-steps" class="space-y-4"></div>
+            
+            <button id="fallback-btn" class="w-full bg-gray-200 text-gray-700 py-3 rounded-2xl text-sm font-bold mt-4 hidden">
+                In Google Maps öffnen 🗺️
+            </button>
         </div>
     </div>
 
     <script>
-        async function getJourney() {
-    const from = document.getElementById('from').value;
-    const to = document.getElementById('to').value;
-    const stepContainer = document.getElementById('journey-steps');
-    const resultDiv = document.getElementById('result');
+        async function getAlternativeJourney() {
+            const from = document.getElementById('from').value;
+            const to = document.getElementById('to').value;
+            const stepContainer = document.getElementById('journey-steps');
+            const resultDiv = document.getElementById('result');
+            const fallbackBtn = document.getElementById('fallback-btn');
 
-    if (!from || !to) return;
-    resultDiv.classList.remove('hidden');
-    stepContainer.innerHTML = "<p class='text-center py-10 font-bold'>Suche Verbindung... 🍦</p>";
+            if (!from || !to) return;
+            resultDiv.classList.remove('hidden');
+            stepContainer.innerHTML = "<p class='text-center py-10 font-bold'>Suche... 🍦</p>";
 
-    try {
-        // Sử dụng một proxy để tránh lỗi chặn truy cập (CORS)
-        const proxyUrl = "https://corsproxy.io/?";
-        const apiUrl = `https://v6.vbb.transport.rest/journeys?from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}&results=1`;
-        
-        const res = await fetch(proxyUrl + encodeURIComponent(apiUrl));
-        const data = await res.json();
+            try {
+                // Thử gọi lại API Berlin với tham số nhẹ hơn
+                const response = await fetch(`https://v6.vbb.transport.rest/journeys?from=${encodeURIComponent(from + " Berlin")}&to=${encodeURIComponent(to + " Berlin")}&results=1`);
+                const data = await response.json();
 
-        if (!data.journeys || data.journeys.length === 0) {
-            stepContainer.innerHTML = "<p class='text-center text-red-500'>Keine Reise gefunden. 😢<br>Versuch's với tên trạm cụ thể hơn!</p>";
-            return;
+                if (data.journeys && data.journeys.length > 0) {
+                    stepContainer.innerHTML = "";
+                    data.journeys[0].legs.forEach(leg => {
+                        const isWalk = leg.mode === 'walking';
+                        stepContainer.innerHTML += `
+                            <div class="bg-white p-5 rounded-[2rem] shadow-md flex items-center gap-4 border-l-8 ${isWalk ? 'border-orange-400' : 'border-blue-600'}">
+                                <div class="text-4xl ${isWalk ? 'walking-anim' : ''}">${isWalk ? '👟' : '🚇'}</div>
+                                <div class="flex-1">
+                                    <p class="text-xs font-bold text-gray-400 uppercase">${isWalk ? 'Laufen' : 'Einsteigen'}</p>
+                                    <p class="text-lg font-black leading-tight text-blue-900">${leg.destination.name}</p>
+                                    <p class="text-sm font-bold text-gray-500">${isWalk ? 'ca. 5-10 Min.' : 'Fahren'}</p>
+                                </div>
+                            </div>`;
+                    });
+                } else {
+                    throw new Error("No journey");
+                }
+            } catch (e) {
+                // Nếu API Berlin lỗi, hiển thị nút mở Google Maps trực tiếp cho con
+                stepContainer.innerHTML = `
+                    <div class="bg-white p-6 rounded-[2rem] text-center shadow-md border-2 border-red-200">
+                        <p class="text-lg font-bold text-red-600 mb-2">Ups! API Pause 🚧</p>
+                        <p class="text-sm text-gray-600">Klick unten để xem đường đi trên bản đồ nhé!</p>
+                    </div>`;
+                fallbackBtn.classList.remove('hidden');
+                fallbackBtn.onclick = () => {
+                    window.open(`https://www.google.com/maps/dir/?api=1&origin=${encodeURIComponent(from)}&destination=${encodeURIComponent(to)}&travelmode=transit`, '_blank');
+                };
+            }
         }
-
-        const journey = data.journeys[0];
-        stepContainer.innerHTML = "";
-        
-        journey.legs.forEach(leg => {
-            const isWalk = leg.mode === 'walking';
-            const lineName = leg.line?.name || '';
-            
-            stepContainer.innerHTML += `
-                <div class="bg-white p-5 rounded-[2rem] shadow-md flex items-center gap-4 border-l-8 ${isWalk ? 'border-orange-400' : 'border-blue-600'}">
-                    <div class="text-4xl ${isWalk ? 'walking-anim' : ''}">${isWalk ? '👟' : '🚇'}</div>
-                    <div class="flex-1">
-                        <p class="text-xs font-bold text-gray-400 uppercase">${isWalk ? 'Laufen' : 'Einsteigen: ' + lineName}</p>
-                        <p class="text-lg font-black leading-tight text-blue-900">${leg.destination.name}</p>
-                        <p class="text-sm font-bold text-gray-500 italic">
-                            ${isWalk ? 'ca. ' + Math.round(leg.distance/80) + ' Min.' : (leg.stopovers?.length || 1) + ' Stationen'}
-                        </p>
-                    </div>
-                </div>
-            `;
-        });
-    } catch (e) { 
-        console.error(e);
-        stepContainer.innerHTML = "<p class='text-center'>Ups! Verbindung abgebrochen. 🚧<br>Bitte Internet prüfen!</p>"; 
-    }
-}
     </script>
 </body>
 </html>
